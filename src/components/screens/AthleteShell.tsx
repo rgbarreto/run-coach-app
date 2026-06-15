@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useDashboard } from '@/presentation/hooks/useDashboard';
 import { LineChart, BarChart } from '../TrendsCharts';
 import { Colors, Spacing } from '@/constants/theme';
-import { Heart, Activity, Calendar, Settings, Power, RefreshCw, Zap, Eye, CheckCircle2, AlertCircle } from 'lucide-react-native';
+import { Heart, Activity, Calendar, Settings, Power, RefreshCw, Zap, Eye, CheckCircle2, AlertCircle, Plus } from 'lucide-react-native';
 
 export const AthleteShell = () => {
   const { user, signOut } = useAuth();
