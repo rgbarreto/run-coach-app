@@ -112,11 +112,6 @@ export function useDashboard(athleteId: string) {
       setSyncing(false);
     }
   };
-      setError('Erro ao sincronizar dados com o Garmin.');
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   const logWorkoutManual = async (plan: WorkoutPlan, rpe: number, feedback: string) => {
     try {
