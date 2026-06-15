@@ -340,8 +340,11 @@ app.post('/garmin/personal-sync', async (req, res) => {
   console.log(`[Garmin Personal Sync] Syncing Garmin Connect for email: ${email}`);
 
   try {
-    const client = new GarminConnect();
-    await client.login(email, password);
+    const client = new GarminConnect({
+      username: email,
+      password: password
+    });
+    await client.login();
 
     const today = new Date();
 
