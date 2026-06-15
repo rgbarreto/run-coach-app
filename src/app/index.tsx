@@ -28,12 +28,10 @@ export default function HomeScreen() {
     return <LoginScreen />;
   }
 
-  // Role-based routing
+  // Redirect to AthleteShell (personal training journal app)
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
-      {user.role === 'athlete' && <AthleteShell />}
-      {user.role === 'trainer' && <TrainerShell />}
-      {user.role === 'admin' && <AdminShell />}
+      <AthleteShell />
     </SafeAreaView>
   );
 }

@@ -143,6 +143,39 @@ export function useDashboard(athleteId: string) {
     }
   };
 
+  const createPersonalWorkout = async (
+    title: string,
+    description: string,
+    type: 'run' | 'gym',
+    details: {
+      targetDistance?: number;
+      targetPace?: string;
+      intervals?: string;
+      exercises?: { name: string; sets: number; reps: string; weight?: string }[];
+    }
+  ) => {
+    try {
+      const db = services.databaseService;
+      const newPlan = new WorkoutPlan({
+        id: `plan-${Math.random().toString(36).substring(2, 9)}`,
+        athleteId,
+        coachId: athleteId, // self-assigned
+        title,
+        description,
+        type,
+        scheduledDate: new Date(),
+        status: 'pending',
+        ...details
+      });
+
+      await db.createWorkoutPlan(newPlan);
+      await loadData();
+    } catch (err: any) {
+      setError('Erro ao criar treino pessoal.');
+      throw err;
+    }
+  };
+
   return {
     activities,
     healthMetrics,
@@ -156,6 +189,7 @@ export function useDashboard(athleteId: string) {
     disconnectGarmin,
     syncGarmin,
     syncGarminPersonal,
-    logWorkoutManual
+    logWorkoutManual,
+    createPersonalWorkout
   };
 }

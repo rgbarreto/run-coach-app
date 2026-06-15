@@ -106,36 +106,6 @@ export const LoginScreen = () => {
             />
           </View>
 
-          {isSignUp && (
-            <View style={styles.roleContainer}>
-              <ThemedText style={styles.roleLabel}>Cadastrar como:</ThemedText>
-              <View style={styles.roleSelector}>
-                <TouchableOpacity
-                  style={[
-                    styles.roleOption,
-                    role === 'athlete' && { backgroundColor: '#ff5722' }
-                  ]}
-                  onPress={() => setRole('athlete')}
-                >
-                  <ThemedText style={[styles.roleOptionText, role === 'athlete' && { color: '#fff' }]}>
-                    Atleta
-                  </ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.roleOption,
-                    role === 'trainer' && { backgroundColor: '#ff5722' }
-                  ]}
-                  onPress={() => setRole('trainer')}
-                >
-                  <ThemedText style={[styles.roleOptionText, role === 'trainer' && { color: '#fff' }]}>
-                    Treinador
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
           <TouchableOpacity
             style={[styles.btnSubmit, loading && { opacity: 0.8 }]}
             onPress={handleSubmit}
@@ -161,13 +131,6 @@ export const LoginScreen = () => {
               {isSignUp ? 'Já possui uma conta? Faça Login' : 'Não tem conta? Cadastre-se grátis'}
             </ThemedText>
           </TouchableOpacity>
-        </View>
-
-        <View style={styles.devHints}>
-          <Shield size={12} color={themeColors.textSecondary} />
-          <ThemedText style={[styles.hintText, { color: themeColors.textSecondary }]}>
-            Dica Dev: Digite e-mail com "coach" ou "admin" para testar outros papéis.
-          </ThemedText>
         </View>
       </ThemedView>
     </ScrollView>

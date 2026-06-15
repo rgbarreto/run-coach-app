@@ -23,7 +23,8 @@ export const AthleteShell = () => {
     disconnectGarmin,
     syncGarmin,
     syncGarminPersonal,
-    logWorkoutManual
+    logWorkoutManual,
+    createPersonalWorkout
   } = useDashboard(user?.id || 'athlete-1');
 
   const scheme = useColorScheme();
@@ -37,11 +38,69 @@ export const AthleteShell = () => {
   // Navigation tabs for Athlete Shell
   const [activeTab, setActiveTab] = useState<'dashboard' | 'trends' | 'workouts' | 'settings'>('dashboard');
   
+  // Trends sub-tabs segment (health vs training)
+  const [trendSegment, setTrendSegment] = useState<'health' | 'training'>('health');
+
   // Modal states for logging workout manually
   const [logModalVisible, setLogModalVisible] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [athleteRpe, setAthleteRpe] = useState('5');
   const [athleteFeedback, setAthleteFeedback] = useState('');
+
+  // Modal states for self-prescribing workout
+  const [createWorkoutModalVisible, setCreateWorkoutModalVisible] = useState(false);
+  const [newWorkoutType, setNewWorkoutType] = useState<'run' | 'gym'>('run');
+  const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newTargetDistance, setNewTargetDistance] = useState('5000');
+  const [newTargetPace, setNewTargetPace] = useState('5:00');
+  const [newIntervals, setNewIntervals] = useState('');
+  const [newExercises, setNewExercises] = useState<{ name: string; sets: number; reps: string; weight?: string }[]>([
+    { name: 'Agachamento', sets: 3, reps: '10', weight: '30kg' }
+  ]);
+  const [exName, setExName] = useState('');
+  const [exSets, setExSets] = useState('3');
+  const [exReps, setExReps] = useState('10');
+  const [exWeight, setExWeight] = useState('');
+
+  const handleAddExercise = () => {
+    if (exName) {
+      setNewExercises([
+        ...newExercises,
+        {
+          name: exName,
+          sets: parseInt(exSets) || 3,
+          reps: exReps || '10',
+          weight: exWeight || undefined
+        }
+      ]);
+      setExName('');
+      setExSets('3');
+      setExReps('10');
+      setExWeight('');
+    }
+  };
+
+  const handleSavePersonalWorkout = async () => {
+    if (!newTitle || !newDescription) return;
+    
+    const details: any = {};
+    if (newWorkoutType === 'run') {
+      details.targetDistance = parseFloat(newTargetDistance) || 0;
+      details.targetPace = newTargetPace;
+      details.intervals = newIntervals || undefined;
+    } else {
+      details.exercises = newExercises;
+    }
+
+    await createPersonalWorkout(newTitle, newDescription, newWorkoutType, details);
+    
+    // Reset form
+    setNewTitle('');
+    setNewDescription('');
+    setNewExercises([{ name: 'Agachamento', sets: 3, reps: '10', weight: '30kg' }]);
+    setCreateWorkoutModalVisible(false);
+  };
 
   const handleOpenLogModal = (plan: any) => {
     setSelectedPlan(plan);
@@ -230,46 +289,111 @@ export const AthleteShell = () => {
     const vo2Vals = healthMetrics.filter(m => m.vo2Max !== undefined).map(m => m.vo2Max as number).slice(-10);
     const sleepVals = healthMetrics.filter(m => m.sleepDurationMinutes !== undefined).map(m => (m.sleepDurationMinutes as number) / 60).slice(-10);
     
-    const chartLabels = healthMetrics.map(m => {
+    const healthLabels = healthMetrics.map(m => {
       const d = new Date(m.date);
       return `${d.getDate()}/${d.getMonth() + 1}`;
     }).slice(-10);
 
+    // Map training data vectors
+    const runActivities = activities.filter(a => a.type === 'run');
+    const runPaces = runActivities.filter(a => a.pace !== undefined).map(a => parseFloat(((a.pace || 0) / 60).toFixed(2))).slice(-7).reverse();
+    const runDistances = runActivities.map(a => parseFloat((a.distance / 1000).toFixed(1))).slice(-7).reverse();
+    const calorieVals = activities.filter(a => a.calories !== undefined).map(a => a.calories as number).slice(-7).reverse();
+
+    const runLabels = runActivities.map(a => {
+      const d = new Date(a.startTime);
+      return `${d.getDate()}/${d.getMonth() + 1}`;
+    }).slice(-7).reverse();
+
+    const calorieLabels = activities.map(a => {
+      const d = new Date(a.startTime);
+      return `${d.getDate()}/${d.getMonth() + 1}`;
+    }).slice(-7).reverse();
+
     return (
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <ThemedText type="title">Tendências & Saúde</ThemedText>
-        <ThemedText style={{ color: themeColors.textSecondary, marginBottom: 16 }}>Análise evolutiva de performance cardíaca e sono</ThemedText>
+        <ThemedText type="title">Tendências & Dashboards</ThemedText>
+        <ThemedText style={{ color: themeColors.textSecondary, marginBottom: 12 }}>Acompanhe o histórico de saúde e o rendimento físico</ThemedText>
 
-        <LineChart
-          title="Frequência Cardíaca de Repouso (Tendência de Condicionamento)"
-          data={rhrVals}
-          labels={chartLabels}
-          color="#f44336"
-          unit=" bpm"
-        />
+        {/* Segment selector */}
+        <View style={styles.segmentContainer}>
+          <TouchableOpacity 
+            style={[styles.segmentBtn, trendSegment === 'health' && { backgroundColor: '#ff5722' }]} 
+            onPress={() => setTrendSegment('health')}
+          >
+            <ThemedText style={[styles.segmentBtnText, trendSegment === 'health' && { color: '#fff', fontWeight: 'bold' }]}>📈 Saúde</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.segmentBtn, trendSegment === 'training' && { backgroundColor: '#ff5722' }]} 
+            onPress={() => setTrendSegment('training')}
+          >
+            <ThemedText style={[styles.segmentBtnText, trendSegment === 'training' && { color: '#fff', fontWeight: 'bold' }]}>🏃‍♂️ Treino</ThemedText>
+          </TouchableOpacity>
+        </View>
 
-        <LineChart
-          title="Consumo Máximo de Oxigênio (VO2 Max)"
-          data={vo2Vals}
-          labels={chartLabels}
-          color="#ff9800"
-        />
-
-        <BarChart
-          title="Horas de Sono por Noite"
-          data={sleepVals}
-          labels={chartLabels}
-          color="#9c27b0"
-          unit="h"
-        />
+        {trendSegment === 'health' ? (
+          <View style={{ gap: 8 }}>
+            <LineChart
+              title="Frequência Cardíaca de Repouso (Condicionamento)"
+              data={rhrVals}
+              labels={healthLabels}
+              color="#f44336"
+              unit=" bpm"
+            />
+            <LineChart
+              title="Consumo Máximo de Oxigênio (VO2 Max)"
+              data={vo2Vals}
+              labels={healthLabels}
+              color="#ff9800"
+            />
+            <BarChart
+              title="Horas de Sono por Noite"
+              data={sleepVals}
+              labels={healthLabels}
+              color="#9c27b0"
+              unit="h"
+            />
+          </View>
+        ) : (
+          <View style={{ gap: 8 }}>
+            <LineChart
+              title="Ritmo de Corrida (Pace Médio - Menor é Melhor)"
+              data={runPaces}
+              labels={runLabels}
+              color="#4caf50"
+              unit=" min/km"
+            />
+            <BarChart
+              title="Distância de Corrida por Sessão (KM)"
+              data={runDistances}
+              labels={runLabels}
+              color="#2196f3"
+              unit=" km"
+            />
+            <BarChart
+              title="Gasto Calórico de Treino (Calorias Ativas)"
+              data={calorieVals}
+              labels={calorieLabels}
+              color="#ff5722"
+              unit=" Kcal"
+            />
+          </View>
+        )}
       </ScrollView>
     );
   };
 
   const renderWorkouts = () => (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <ThemedText type="title">Planilha de Treinos</ThemedText>
-      <ThemedText style={{ color: themeColors.textSecondary, marginBottom: 16 }}>Cronograma de treinos enviado pelo seu treinador</ThemedText>
+      <View style={styles.headerRow}>
+        <View>
+          <ThemedText type="title">Planilha de Treinos</ThemedText>
+          <ThemedText style={{ color: themeColors.textSecondary }}>Cronograma pessoal de treinos</ThemedText>
+        </View>
+        <TouchableOpacity style={styles.syncBtn} onPress={() => setCreateWorkoutModalVisible(true)}>
+          <Plus size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
 
       {workouts.map(w => (
         <ThemedView key={w.id} type="backgroundElement" style={styles.workoutCard}>
@@ -455,6 +579,130 @@ export const AthleteShell = () => {
         </View>
       </Modal>
 
+      {/* Modal to self-prescribe a workout */}
+      <Modal visible={createWorkoutModalVisible} transparent animationType="slide" onRequestClose={() => setCreateWorkoutModalVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <ThemedView type="backgroundElement" style={styles.modalContent}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <ThemedText type="subtitle" style={{ marginBottom: 12 }}>Prescrever Meu Treino</ThemedText>
+
+              {/* Type Switch */}
+              <View style={styles.typeSelector}>
+                <TouchableOpacity
+                  style={[styles.typeOption, newWorkoutType === 'run' && { backgroundColor: '#ff5722' }]}
+                  onPress={() => setNewWorkoutType('run')}
+                >
+                  <ThemedText style={[styles.typeOptionText, newWorkoutType === 'run' && { color: '#fff' }]}>Corrida</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.typeOption, newWorkoutType === 'gym' && { backgroundColor: '#ff5722' }]}
+                  onPress={() => setNewWorkoutType('gym')}
+                >
+                  <ThemedText style={[styles.typeOptionText, newWorkoutType === 'gym' && { color: '#fff' }]}>Fortalecimento</ThemedText>
+                </TouchableOpacity>
+              </View>
+
+              <TextInput
+                style={[styles.inputField, { color: themeColors.text, borderColor: themeColors.backgroundSelected }]}
+                placeholder="Título do Treino (ex: Corrida Ritmo)"
+                placeholderTextColor={themeColors.textSecondary}
+                value={newTitle}
+                onChangeText={setNewTitle}
+              />
+
+              <TextInput
+                style={[styles.inputField, { color: themeColors.text, borderColor: themeColors.backgroundSelected, height: 60, marginTop: 10 }]}
+                placeholder="Descrição e Orientações"
+                placeholderTextColor={themeColors.textSecondary}
+                multiline
+                value={newDescription}
+                onChangeText={setNewDescription}
+              />
+
+              {newWorkoutType === 'run' ? (
+                <View style={{ marginTop: 12 }}>
+                  <ThemedText type="small">Pace Alvo (min/km)</ThemedText>
+                  <TextInput
+                    style={[styles.inputField, { color: themeColors.text, borderColor: themeColors.backgroundSelected, marginTop: 4 }]}
+                    placeholder="ex: 5:00"
+                    placeholderTextColor={themeColors.textSecondary}
+                    value={newTargetPace}
+                    onChangeText={setNewTargetPace}
+                  />
+
+                  <ThemedText type="small" style={{ marginTop: 8 }}>Distância Alvo (metros)</ThemedText>
+                  <TextInput
+                    style={[styles.inputField, { color: themeColors.text, borderColor: themeColors.backgroundSelected, marginTop: 4 }]}
+                    placeholder="ex: 5000"
+                    placeholderTextColor={themeColors.textSecondary}
+                    value={newTargetDistance}
+                    onChangeText={setNewTargetDistance}
+                    keyboardType="numeric"
+                  />
+
+                  <ThemedText type="small" style={{ marginTop: 8 }}>Intervalos / Tiros (Opcional)</ThemedText>
+                  <TextInput
+                    style={[styles.inputField, { color: themeColors.text, borderColor: themeColors.backgroundSelected, marginTop: 4 }]}
+                    placeholder="ex: 5x 800m @ 4:15"
+                    placeholderTextColor={themeColors.textSecondary}
+                    value={newIntervals}
+                    onChangeText={setNewIntervals}
+                  />
+                </View>
+              ) : (
+                <View style={{ marginTop: 12 }}>
+                  <ThemedText type="subtitle" style={{ fontSize: 13, marginBottom: 6 }}>Rotina de Fortalecimento:</ThemedText>
+                  
+                  {newExercises.map((ex, idx) => (
+                    <ThemedText key={idx} type="small" style={{ color: themeColors.textSecondary }}>
+                      {ex.name} - {ex.sets}x{ex.reps} {ex.weight ? `(${ex.weight})` : ''}
+                    </ThemedText>
+                  ))}
+
+                  {/* Add exercise input */}
+                  <View style={styles.addExerciseRow}>
+                    <TextInput
+                      style={[styles.inputField, { flex: 2, color: themeColors.text, borderColor: themeColors.backgroundSelected }]}
+                      placeholder="Exercício"
+                      placeholderTextColor={themeColors.textSecondary}
+                      value={exName}
+                      onChangeText={setExName}
+                    />
+                    <TextInput
+                      style={[styles.inputField, { flex: 1, color: themeColors.text, borderColor: themeColors.backgroundSelected }]}
+                      placeholder="Séries"
+                      placeholderTextColor={themeColors.textSecondary}
+                      value={exSets}
+                      onChangeText={setExSets}
+                      keyboardType="numeric"
+                    />
+                    <TextInput
+                      style={[styles.inputField, { flex: 1, color: themeColors.text, borderColor: themeColors.backgroundSelected }]}
+                      placeholder="Reps"
+                      placeholderTextColor={themeColors.textSecondary}
+                      value={exReps}
+                      onChangeText={setExReps}
+                    />
+                  </View>
+                  <TouchableOpacity style={styles.btnAddEx} onPress={handleAddExercise}>
+                    <ThemedText style={{ color: '#ff5722', fontWeight: 'bold', fontSize: 12 }}>+ Adicionar Exercício</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#333' }]} onPress={() => setCreateWorkoutModalVisible(false)}>
+                  <ThemedText style={{ color: '#fff', fontWeight: 'bold' }}>Cancelar</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#ff5722' }]} onPress={handleSavePersonalWorkout}>
+                  <ThemedText style={{ color: '#fff', fontWeight: 'bold' }}>Criar Treino</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </ThemedView>
+        </View>
+      </Modal>
+
       {/* Tab bar navigation */}
       <View style={[styles.tabBar, { backgroundColor: themeColors.backgroundElement, borderTopColor: themeColors.backgroundSelected }]}>
         <TouchableOpacity style={styles.tabBtn} onPress={() => setActiveTab('dashboard')}>
@@ -467,7 +715,7 @@ export const AthleteShell = () => {
         <TouchableOpacity style={styles.tabBtn} onPress={() => setActiveTab('trends')}>
           <Heart size={20} color={activeTab === 'trends' ? '#ff5722' : themeColors.textSecondary} />
           <ThemedText style={[styles.tabLabel, { color: activeTab === 'trends' ? '#ff5722' : themeColors.textSecondary }]}>
-            Saúde
+            Dashboards
           </ThemedText>
         </TouchableOpacity>
 
@@ -559,7 +807,8 @@ const styles = StyleSheet.create({
   workoutHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    alignSelf: 'stretch'
   },
   badge: {
     paddingHorizontal: 8,
@@ -674,7 +923,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     padding: 20,
-    borderRadius: 20
+    borderRadius: 20,
+    maxHeight: '85%'
   },
   inputField: {
     height: 44,
@@ -694,5 +944,51 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  // New personal training styles
+  segmentContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: 4,
+    borderRadius: 10,
+    marginBottom: Spacing.four
+  },
+  segmentBtn: {
+    flex: 1,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  segmentBtnText: {
+    fontSize: 13,
+    fontWeight: '500'
+  },
+  typeSelector: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12
+  },
+  typeOption: {
+    flex: 1,
+    height: 38,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2e2e2e'
+  },
+  typeOptionText: {
+    fontWeight: 'bold',
+    fontSize: 13
+  },
+  addExerciseRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 8
+  },
+  btnAddEx: {
+    paddingVertical: 10,
+    alignItems: 'flex-start'
   }
 });
+
