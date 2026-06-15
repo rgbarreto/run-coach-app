@@ -89,6 +89,35 @@ export function useDashboard(athleteId: string) {
     }
   };
 
+  const syncGarminPersonal = async (emailKey: string, passwordKey: string) => {
+    setSyncing(true);
+    setError(null);
+    try {
+      const result = await services.healthDataService.syncPersonalData(athleteId, emailKey, passwordKey);
+      
+      const db = services.databaseService;
+      
+      // Save results to database
+      await Promise.all([
+        ...result.activities.map(a => db.saveActivity(a)),
+        ...result.metrics.map(m => db.saveHealthMetric(m))
+      ]);
+
+      setIsGarminConnected(true);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao sincronizar dados com suas credenciais Garmin.');
+      throw err;
+    } finally {
+      setSyncing(false);
+    }
+  };
+      setError('Erro ao sincronizar dados com o Garmin.');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const logWorkoutManual = async (plan: WorkoutPlan, rpe: number, feedback: string) => {
     try {
       const db = services.databaseService;
@@ -131,6 +160,7 @@ export function useDashboard(athleteId: string) {
     connectGarmin,
     disconnectGarmin,
     syncGarmin,
+    syncGarminPersonal,
     logWorkoutManual
   };
 }

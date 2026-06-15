@@ -68,4 +68,48 @@ export class MockHealthDataService implements IHealthDataService {
       metrics: [newMetric]
     };
   }
+
+  async syncPersonalData(athleteId: string, email: string, password: string): Promise<{ activities: Activity[]; metrics: HealthMetric[] }> {
+    try {
+      const response = await fetch('http://localhost:3000/garmin/personal-sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password, athleteId })
+      });
+
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || `Erro HTTP: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (!result.success || !result.synced) {
+        throw new Error(result.message || 'Falha desconhecida no retorno do servidor.');
+      }
+
+      // Map raw JSON to Domain Entities
+      const activities = result.synced.activities.map((act: any) => new Activity({
+        ...act,
+        startTime: new Date(act.startTime)
+      }));
+
+      const metrics = result.synced.metrics.map((met: any) => new HealthMetric({
+        ...met,
+        date: new Date(met.date)
+      }));
+
+      this.connectedUsers.add(athleteId); // Mark connected on success
+
+      return { activities, metrics };
+
+    } catch (error: any) {
+      console.error('[HealthService] Personal Sync Error:', error.message);
+      throw new Error(
+        `Falha na sincronização pessoal. Verifique se o servidor backend está rodando em http://localhost:3000 (npm start na pasta backend). Detalhes: ${error.message}`
+      );
+    }
+  }
 }

@@ -22,11 +22,17 @@ export const AthleteShell = () => {
     connectGarmin,
     disconnectGarmin,
     syncGarmin,
+    syncGarminPersonal,
     logWorkoutManual
   } = useDashboard(user?.id || 'athlete-1');
 
   const scheme = useColorScheme();
   const themeColors = Colors[scheme === 'dark' ? 'dark' : 'light'];
+  
+  // Garmin personal credentials states
+  const [garminEmail, setGarminEmail] = useState('');
+  const [garminPassword, setGarminPassword] = useState('');
+  const [personalSyncError, setPersonalSyncError] = useState<string | null>(null);
   
   // Navigation tabs for Athlete Shell
   const [activeTab, setActiveTab] = useState<'dashboard' | 'trends' | 'workouts' | 'settings'>('dashboard');
@@ -319,28 +325,75 @@ export const AthleteShell = () => {
       <ThemedText style={{ color: themeColors.textSecondary, marginBottom: 16 }}>Integrações de dados e conta do atleta</ThemedText>
 
       <ThemedView type="backgroundElement" style={styles.settingsSection}>
-        <ThemedText type="subtitle" style={{ marginBottom: 12 }}>Integração Garmin Connect</ThemedText>
+        <ThemedText type="subtitle" style={{ marginBottom: 4 }}>Sincronização Garmin Pessoal</ThemedText>
         <ThemedText type="small" style={{ color: themeColors.textSecondary, marginBottom: 16 }}>
-          Conecte sua conta do Garmin para receber atualizações automáticas sempre que você sincronizar o seu relógio.
+          Insira seus dados de login pessoais do Garmin Connect para sincronizar diretamente seus treinos e métricas de saúde.
         </ThemedText>
 
-        {!isGarminConnected ? (
-          <TouchableOpacity style={[styles.settingsBtn, { backgroundColor: '#ff5722' }]} onPress={connectGarmin}>
-            <ThemedText style={styles.btnText}>Vincular Conta Garmin Connect</ThemedText>
+        <TextInput
+          style={[styles.inputField, { color: themeColors.text, borderColor: themeColors.backgroundSelected, marginBottom: 10 }]}
+          placeholder="E-mail do Garmin Connect"
+          placeholderTextColor={themeColors.textSecondary}
+          value={garminEmail}
+          onChangeText={setGarminEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <TextInput
+          style={[styles.inputField, { color: themeColors.text, borderColor: themeColors.backgroundSelected, marginBottom: 16 }]}
+          placeholder="Senha do Garmin Connect"
+          placeholderTextColor={themeColors.textSecondary}
+          secureTextEntry
+          value={garminPassword}
+          onChangeText={setGarminPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        {personalSyncError && (
+          <ThemedText type="small" style={{ color: '#f44336', marginBottom: 12, lineHeight: 16 }}>
+            {personalSyncError}
+          </ThemedText>
+        )}
+
+        <TouchableOpacity 
+          style={[styles.settingsBtn, { backgroundColor: '#ff5722' }, syncing && { opacity: 0.8 }]} 
+          disabled={syncing}
+          onPress={async () => {
+            if (!garminEmail || !garminPassword) {
+              setPersonalSyncError('Por favor, preencha o e-mail e a senha do Garmin.');
+              return;
+            }
+            setPersonalSyncError(null);
+            try {
+              await syncGarminPersonal(garminEmail, garminPassword);
+              alert('Garmin sincronizado com sucesso!');
+            } catch (err: any) {
+              setPersonalSyncError(err.message || 'Falha na autenticação ou limite do Garmin.');
+            }
+          }}
+        >
+          {syncing ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <ThemedText style={styles.btnText}>Autenticar e Sincronizar Relógio</ThemedText>
+          )}
+        </TouchableOpacity>
+
+        {isGarminConnected && (
+          <TouchableOpacity 
+            style={[styles.settingsBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#f44336', marginTop: 10 }]} 
+            onPress={() => {
+              disconnectGarmin();
+              setGarminEmail('');
+              setGarminPassword('');
+              setPersonalSyncError(null);
+            }}
+          >
+            <ThemedText style={[styles.btnText, { color: '#f44336' }]}>Desconectar Garmin</ThemedText>
           </TouchableOpacity>
-        ) : (
-          <View style={{ gap: 8 }}>
-            <TouchableOpacity style={[styles.settingsBtn, { backgroundColor: '#4caf50' }]} onPress={syncGarmin} disabled={syncing}>
-              {syncing ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <ThemedText style={styles.btnText}>Sincronizar Relógio Agora</ThemedText>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.settingsBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#f44336' }]} onPress={disconnectGarmin}>
-              <ThemedText style={[styles.btnText, { color: '#f44336' }]}>Desconectar Garmin</ThemedText>
-            </TouchableOpacity>
-          </View>
         )}
       </ThemedView>
 

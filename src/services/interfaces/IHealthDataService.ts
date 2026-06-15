@@ -6,4 +6,5 @@ export interface IHealthDataService {
   disconnectGarmin(athleteId: string): Promise<void>;
   isGarminConnected(athleteId: string): Promise<boolean>;
   syncLatestData(athleteId: string): Promise<{ activities: Activity[]; metrics: HealthMetric[] }>;
+  syncPersonalData(athleteId: string, email: string, password: string): Promise<{ activities: Activity[]; metrics: HealthMetric[] }>;
 }

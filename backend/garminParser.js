@@ -63,3 +63,60 @@ export function parseGarminDaily(garminDaily, athleteId) {
     activeCalories: garminDaily.activeKilocalories || 0
   };
 }
+
+/**
+ * Parses data fetched from the personal garmin-connect Node client
+ */
+export function parsePersonalGarminActivity(personalActivity, athleteId) {
+  const distance = personalActivity.distance || 0;
+  const duration = personalActivity.duration || personalActivity.elapsedDuration || 0;
+  const activityType = (personalActivity.activityType?.typeKey || personalActivity.activityType || '').toLowerCase();
+  
+  let type = 'other';
+  if (activityType.includes('running') || activityType.includes('run')) {
+    type = 'run';
+  } else if (activityType.includes('strength') || activityType.includes('gym') || activityType.includes('fitness')) {
+    type = 'gym';
+  }
+
+  let pace;
+  if (type === 'run' && distance > 0 && duration > 0) {
+    pace = Math.round(duration / (distance / 1000));
+  }
+
+  return {
+    id: `garmin-personal-act-${personalActivity.activityId || Math.random().toString(36).substring(2, 9)}`,
+    athleteId,
+    type,
+    title: personalActivity.activityName || (type === 'run' ? 'Corrida Pessoal' : 'Fortalecimento Pessoal'),
+    distance: Math.round(distance), // in meters
+    duration: Math.round(duration), // in seconds
+    startTime: personalActivity.startTimeLocal || new Date().toISOString(),
+    averageHeartRate: personalActivity.averageHR || personalActivity.averageHeartRate,
+    maxHeartRate: personalActivity.maxHR || personalActivity.maxHeartRate,
+    calories: personalActivity.calories,
+    pace,
+    cadence: personalActivity.averageRunningCadenceInStepsPerMinute || personalActivity.averageCadence,
+    elevationGain: personalActivity.elevationGain || 0,
+    source: 'garmin',
+    externalId: String(personalActivity.activityId)
+  };
+}
+
+export function parsePersonalGarminDaily(personalDaily, athleteId) {
+  const todayStr = new Date().toISOString().split('T')[0];
+  
+  return {
+    id: `garmin-personal-daily-${Math.random().toString(36).substring(2, 9)}`,
+    athleteId,
+    date: personalDaily.date || todayStr,
+    restingHeartRate: personalDaily.restingHeartRate || 60,
+    vo2Max: personalDaily.vo2Max || undefined,
+    sleepDurationMinutes: personalDaily.sleepDurationMinutes || undefined,
+    bodyBattery: personalDaily.bodyBattery || undefined,
+    hrvStatus: personalDaily.hrvStatus || undefined,
+    steps: personalDaily.steps || 0,
+    activeCalories: personalDaily.activeCalories || 0
+  };
+}
+
