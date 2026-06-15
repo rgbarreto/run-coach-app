@@ -1,180 +1,115 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { ExternalLink } from '@/components/external-link';
+import React from 'react';
+import { ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { Colors, Spacing } from '@/constants/theme';
+import { BookOpen, Zap, Heart, ShieldAlert } from 'lucide-react-native';
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
-  const theme = useTheme();
-
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
+export default function ExploreScreen() {
+  const scheme = useColorScheme();
+  const themeColors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <ThemedText type="title">Manual de Corrida & Saúde</ThemedText>
+        <ThemedText style={{ color: themeColors.textSecondary, marginBottom: Spacing.four }}>
+          Dicas técnicas e científicas para melhorar sua performance.
+        </ThemedText>
+
+        {/* Section 1 */}
+        <ThemedView type="backgroundElement" style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Heart size={20} color="#f44336" />
+            <ThemedText type="subtitle" style={styles.cardTitle}>Zonas de Frequência Cardíaca</ThemedText>
+          </View>
+          <ThemedText type="small" style={[styles.cardDesc, { color: themeColors.textSecondary }]}>
+            Treinar nas zonas certas ajuda a otimizar sua queima de gordura e aumentar sua capacidade cardiovascular:
           </ThemedText>
-
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
+          <View style={styles.list}>
+            <ThemedText type="small" style={{ color: themeColors.text }}>• Z1 (Regenerativo): Até 60% FC Max. Foco em recuperação ativa.</ThemedText>
+            <ThemedText type="small" style={{ color: themeColors.text, marginTop: 4 }}>• Z2 (Aeróbico Leve): 60-70% FC Max. Base de resistência (Rodagem).</ThemedText>
+            <ThemedText type="small" style={{ color: themeColors.text, marginTop: 4 }}>• Z3 (Limiar de Lactato): 70-80% FC Max. Melhora o ritmo de prova.</ThemedText>
+            <ThemedText type="small" style={{ color: themeColors.text, marginTop: 4 }}>• Z4/Z5 (Anaeróbico): Acima de 80% FC Max. Velocidade e tiros curtos.</ThemedText>
+          </View>
         </ThemedView>
 
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
-              </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
-              />
-            </ThemedView>
-          </Collapsible>
-
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
+        {/* Section 2 */}
+        <ThemedView type="backgroundElement" style={styles.card}>
+          <View style={styles.cardHeader}>
+            <ShieldAlert size={20} color="#ff9800" />
+            <ThemedText type="subtitle" style={styles.cardTitle}>Entendendo a Escala de RPE</ThemedText>
+          </View>
+          <ThemedText type="small" style={[styles.cardDesc, { color: themeColors.textSecondary }]}>
+            A Percepção Subjetiva de Esforço (RPE) vai de 1 a 10 e ajuda seu treinador a calibrar a intensidade do treino:
+          </ThemedText>
+          <View style={styles.list}>
+            <ThemedText type="small" style={{ color: themeColors.text }}>• 1 a 2: Muito fácil, respiração tranquila, conversa fluída.</ThemedText>
+            <ThemedText type="small" style={{ color: themeColors.text, marginTop: 4 }}>• 3 a 5: Moderado. Respiração começa a acelerar ligeiramente.</ThemedText>
+            <ThemedText type="small" style={{ color: themeColors.text, marginTop: 4 }}>• 6 a 8: Difícil. Respiração forte, conversas limitadas a palavras soltas.</ThemedText>
+            <ThemedText type="small" style={{ color: themeColors.text, marginTop: 4 }}>• 9 a 10: Esforço máximo. Exaustão rápida, impossível falar.</ThemedText>
+          </View>
         </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+
+        {/* Section 3 */}
+        <ThemedView type="backgroundElement" style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Zap size={20} color="#ffeb3b" />
+            <ThemedText type="subtitle" style={styles.cardTitle}>Por que treinar força?</ThemedText>
+          </View>
+          <ThemedText type="small" style={[styles.cardDesc, { color: themeColors.textSecondary }]}>
+            O fortalecimento muscular em academia (musculação) previne lesões por impacto na corrida e melhora sua economia de corrida (gasto de energia por km). Não pule os treinos de perna prescritos pelo seu treinador!
+          </ThemedText>
+        </ThemedView>
+
+        {/* Section 4 */}
+        <ThemedView type="backgroundElement" style={styles.card}>
+          <View style={styles.cardHeader}>
+            <BookOpen size={20} color="#2196f3" />
+            <ThemedText type="subtitle" style={styles.cardTitle}>Como funciona a conexão Garmin?</ThemedText>
+          </View>
+          <ThemedText type="small" style={[styles.cardDesc, { color: themeColors.textSecondary }]}>
+            1. Vá na aba Ajustes do app e clique em "Vincular Garmin".
+            {"\n"}2. Faça login na conta Garmin Connect para conceder autorização.
+            {"\n"}3. Prontinho! Ao concluir treinos com o relógio, eles aparecerão automaticamente na sua aba Feed.
+          </ThemedText>
+        </ThemedView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
   container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
+    flex: 1
   },
-  titleContainer: {
-    gap: Spacing.three,
-    alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
+  scrollContainer: {
+    padding: Spacing.three,
+    paddingBottom: 100
   },
-  centerText: {
-    textAlign: 'center',
+  card: {
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: Spacing.three
   },
-  pressed: {
-    opacity: 0.7,
-  },
-  linkButton: {
+  cardHeader: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
     alignItems: 'center',
+    gap: Spacing.two,
+    marginBottom: 10
   },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: 'bold'
   },
-  collapsibleContent: {
-    alignItems: 'center',
+  cardDesc: {
+    lineHeight: 18
   },
-  imageTutorial: {
-    width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
-  },
+  list: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.05)'
+  }
 });

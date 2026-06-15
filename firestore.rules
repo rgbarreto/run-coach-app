@@ -1,0 +1,88 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for auth and roles
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasRole(role) {
+      return isAuthenticated() && 
+        resource.data.role == role || 
+        getUserData().role == role;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'admin';
+    }
+
+    function isTrainer() {
+      return isAuthenticated() && (getUserData().role == 'trainer' || getUserData().role == 'admin');
+    }
+
+    // --- Users Collection Rules ---
+    match /users/{userId} {
+      // Users can read their own profiles, Trainers can view all athletes, Admins can view everyone
+      allow read: if isOwner(userId) || isTrainer();
+      
+      // Creating a user profile is allowed upon registration
+      allow create: if isAuthenticated() && isOwner(userId);
+      
+      // Updating name/settings is allowed by the user. Modifying role metadata is strictly restricted to Admins.
+      allow update: if isOwner(userId) && 
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'createdAt']))
+        || isAdmin();
+
+      // Only admins can delete accounts
+      allow delete: if isAdmin();
+    }
+
+    // --- Activities Collection Rules (Synced Garmin or Manual activities) ---
+    match /activities/{activityId} {
+      // An athlete can read/write their own activities. Trainers can read activities of any athlete.
+      allow read: if isAuthenticated() && (isOwner(resource.data.athleteId) || isTrainer());
+      allow create: if isAuthenticated() && isOwner(request.resource.data.athleteId);
+      allow update: if isAuthenticated() && isOwner(resource.data.athleteId) && isOwner(request.resource.data.athleteId);
+      allow delete: if isAuthenticated() && isOwner(resource.data.athleteId) || isAdmin();
+    }
+
+    // --- Health Metrics Collection Rules (Resting HR, Sleep, VO2 max) ---
+    match /healthMetrics/{metricId} {
+      // Only the athlete can sync/write their own health data. Trainers can read metrics for trends analysis.
+      allow read: if isAuthenticated() && (isOwner(resource.data.athleteId) || isTrainer());
+      allow create: if isAuthenticated() && isOwner(request.resource.data.athleteId);
+      allow update: if isAuthenticated() && isOwner(resource.data.athleteId) && isOwner(request.resource.data.athleteId);
+      allow delete: if isAdmin();
+    }
+
+    // --- Workout Plans Collection Rules (Prescribed running/gym sheets) ---
+    match /workoutPlans/{planId} {
+      // Athletes can read their plans. Trainers/Admins can read all plans.
+      allow read: if isAuthenticated() && (isOwner(resource.data.athleteId) || isTrainer());
+      
+      // Only Trainers and Admins can create new plans
+      allow create: if isTrainer() && request.resource.data.coachId == request.auth.uid;
+      
+      // Trainers can update anything in the plan.
+      // Athletes can only update completion status, feedback comments, and RPE scores.
+      allow update: if isTrainer() || (
+        isAuthenticated() && 
+        isOwner(resource.data.athleteId) && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'athleteFeedback', 'athleteRpe', 'completedActivityId', 'completedDate'])
+      );
+      
+      // Only trainers who created the plan or admins can delete plans
+      allow delete: if isTrainer() && resource.data.coachId == request.auth.uid || isAdmin();
+    }
+  }
+}
